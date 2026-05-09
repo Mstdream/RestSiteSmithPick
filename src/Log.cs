@@ -1,11 +1,14 @@
+// Original work Copyright (c) 2025 chenyu. Licensed under Apache License 2.0.
+// Modified by Mst, 2026.
+
 using System;
 using Godot;
 
-namespace RestSiteUpgradeAll;
+namespace RestSiteSmithPick;
 
 internal static class Log
 {
-    private const string Prefix = "[RestSiteUpgradeAll]";
+    private const string Prefix = "[RestSiteSmithPick]";
 
     public static void Info(string message) => Write("INFO", message);
 

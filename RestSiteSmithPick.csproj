@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>rest_site_smith_pick</AssemblyName>
+    <RootNamespace>RestSiteSmithPick</RootNamespace>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+
+    <DllDir Condition="'$(DllDir)' == ''">dll/data_sts2_windows_x86_64</DllDir>
+    <GodotSharpDll Condition="'$(GodotSharpDll)' == ''">$(DllDir)/GodotSharp.dll</GodotSharpDll>
+    <Sts2Dll Condition="'$(Sts2Dll)' == ''">$(DllDir)/sts2.dll</Sts2Dll>
+    <HarmonyDll Condition="'$(HarmonyDll)' == ''">$(DllDir)/0Harmony.dll</HarmonyDll>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="GodotSharp">
+      <HintPath>$(GodotSharpDll)</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="sts2">
+      <HintPath>$(Sts2Dll)</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(HarmonyDll)</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="rest_site_smith_pick.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -1,14 +1,14 @@
-# RestSiteUpgradeAll
+# RestSiteSmithPick
 
-`RestSiteUpgradeAll` 是一个《杀戮尖塔 2》DLL mod。
+`RestSiteSmithPick` 是一个《杀戮尖塔 2》DLL mod。
 
-它会接管火堆的 `Smith` 选项，让玩家在火堆点击锻造时，不再进入“选择 1 张牌升级”的界面，而是直接把整副牌中所有当前可升级的卡牌各升级 1 次。
+它在火堆的 `Smith` 选项中，让玩家自选 N 张牌升级（N 通过 `upgrade_count` 配置，默认 2），而不是只能选 1 张或一键升全部。
 
 ## 项目信息
 
-- Mod ID: `rest_site_upgrade_all`
-- DLL 文件名: `rest_site_upgrade_all.dll`
-- Manifest: `rest_site_upgrade_all.json`
+- Mod ID: `rest_site_smith_pick`
+- DLL 文件名: `rest_site_smith_pick.dll`
+- Manifest: `rest_site_smith_pick.json`
 - 技术栈:
   - Godot
   - C# / .NET DLL
@@ -18,28 +18,30 @@
 
 ## 当前实现
 
-核心逻辑在 [src/Sts2/RestSitePatches.cs](/Users/chenyu/project/mod/update_all/demo/RestSiteUpgradeAll/src/Sts2/RestSitePatches.cs)。
+核心逻辑在 [src/Sts2/RestSitePatches.cs](src/Sts2/RestSitePatches.cs)。
 
 当前做了两件事：
 
-1. Harmony 接管 `SmithRestSiteOption.OnSelect`
-   直接获取玩家牌库里所有 `IsUpgradable` 的牌，并调用 `CardCmd.Upgrade(..., CardPreviewStyle.None)`。
-2. Harmony 接管 `NRestSiteButton.RefreshTextState`
-   当火堆按钮聚焦到 `Smith` 时，把说明文字改成 `一键升级全部可升级卡牌`。
+1. Harmony prefix 拦截 `SmithRestSiteOption.OnSelect`
+   将 `SmithCount` 属性设置为配置的 `upgrade_count`，然后放行让游戏原本的 `OnSelect` 方法运行，游戏原生逻辑会根据 `SmithCount` 弹出多选界面并升级所选牌。
+2. Harmony prefix 拦截 `NRestSiteButton.RefreshTextState`
+   当火堆按钮聚焦到 `Smith` 时，把说明文字改成 `选择N张牌升级`。
 
 ## 项目结构
 
 ```text
-RestSiteUpgradeAll/
+RestSiteSmithPick/
 ├── README.md
-├── RestSiteUpgradeAll.csproj
-├── rest_site_upgrade_all.json
+├── LICENSE
+├── RestSiteSmithPick.csproj
+├── rest_site_smith_pick.json
 ├── build_manual.sh
-├── bin/
-│   ├── manual/
-│   └── windows-x64/
+├── dll/
+│   └── data_sts2_windows_x86_64/
+├── bin/Release/net9.0/
 └── src/
     ├── Bootstrap.cs
+    ├── Config.cs
     ├── Log.cs
     └── Sts2/
         └── RestSitePatches.cs
@@ -59,7 +61,7 @@ RestSiteUpgradeAll/
 
 项目自带手动构建脚本：
 
-- [build_manual.sh](/Users/chenyu/project/mod/update_all/demo/RestSiteUpgradeAll/build_manual.sh)
+- [build_manual.sh](/Users/chenyu/project/mod/update_all/demo/RestSiteSmithPick/build_manual.sh)
 
 这个脚本支持 3 个关键参数：
 
@@ -75,21 +77,21 @@ RestSiteUpgradeAll/
 默认走当前脚本里的 macOS arm64 运行库目录，输出到 `bin/manual/`：
 
 ```zsh
-cd /Users/chenyu/project/mod/update_all/demo/RestSiteUpgradeAll
+cd /Users/chenyu/project/mod/update_all/demo/RestSiteSmithPick
 zsh build_manual.sh
 ```
 
 输出：
 
 ```text
-bin/manual/rest_site_upgrade_all.dll
-bin/manual/rest_site_upgrade_all.json
+bin/manual/rest_site_smith_pick.dll
+bin/manual/rest_site_smith_pick.json
 ```
 
 ### 指定 macOS x86_64 构建
 
 ```zsh
-cd /Users/chenyu/project/mod/update_all/demo/RestSiteUpgradeAll
+cd /Users/chenyu/project/mod/update_all/demo/RestSiteSmithPick
 GAME_DIR="$HOME/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/Resources/data_sts2_macos_x86_64" \
 OUT_SUBDIR="macos-x86_64" \
 PLATFORM_TARGET="x64" \
@@ -101,7 +103,7 @@ zsh build_manual.sh
 当前已经验证过可输出 Windows x64 PE/.NET DLL，命令如下：
 
 ```zsh
-cd /Users/chenyu/project/mod/update_all/demo/RestSiteUpgradeAll
+cd /Users/chenyu/project/mod/update_all/demo/RestSiteSmithPick
 GAME_DIR="$HOME/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/Resources/data_sts2_macos_x86_64" \
 OUT_SUBDIR="windows-x64" \
 PLATFORM_TARGET="x64" \
@@ -111,8 +113,8 @@ zsh build_manual.sh
 输出：
 
 ```text
-bin/windows-x64/rest_site_upgrade_all.dll
-bin/windows-x64/rest_site_upgrade_all.json
+bin/windows-x64/rest_site_smith_pick.dll
+bin/windows-x64/rest_site_smith_pick.json
 ```
 
 说明：
@@ -126,26 +128,26 @@ bin/windows-x64/rest_site_upgrade_all.json
 ### macOS 安装目录
 
 ```text
-/Users/chenyu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/mods/rest_site_upgrade_all/
+/Users/chenyu/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/mods/rest_site_smith_pick/
 ```
 
 需要放入：
 
-- `rest_site_upgrade_all.dll`
-- `rest_site_upgrade_all.json`
+- `rest_site_smith_pick.dll`
+- `rest_site_smith_pick.json`
 
 ### Windows 安装目录
 
 把 Windows x64 构建产物放到类似下面的目录：
 
 ```text
-<Slay the Spire 2>\mods\rest_site_upgrade_all\
+<Slay the Spire 2>\mods\rest_site_smith_pick\
 ```
 
 同样放入：
 
-- `rest_site_upgrade_all.dll`
-- `rest_site_upgrade_all.json`
+- `rest_site_smith_pick.dll`
+- `rest_site_smith_pick.json`
 
 ## 运行验证
 
@@ -158,15 +160,15 @@ bin/windows-x64/rest_site_upgrade_all.json
 建议检索：
 
 ```zsh
-rg -n "RestSiteUpgradeAll|ERROR|Exception" "$HOME/Library/Application Support/SlayTheSpire2/logs/godot.log"
+rg -n "RestSiteSmithPick|ERROR|Exception" "$HOME/Library/Application Support/SlayTheSpire2/logs/godot.log"
 ```
 
 正常情况下应该看到类似日志：
 
 ```text
-[RestSiteUpgradeAll] [INFO] Initializing.
-[RestSiteUpgradeAll] [INFO] Applied Harmony patches.
-[RestSiteUpgradeAll] [INFO] Upgraded all cards at rest site. player=... count=...
+[RestSiteSmithPick] [INFO] Initializing.
+[RestSiteSmithPick] [INFO] Applied Harmony patches.
+[RestSiteSmithPick] [INFO] Upgraded all cards at rest site. player=... count=...
 ```
 
 ## 开发注意事项
@@ -181,14 +183,14 @@ rg -n "RestSiteUpgradeAll|ERROR|Exception" "$HOME/Library/Application Support/Sl
 
 ## 相关文件
 
-- 工程文件: [RestSiteUpgradeAll.csproj](/Users/chenyu/project/mod/update_all/demo/RestSiteUpgradeAll/RestSiteUpgradeAll.csproj)
-- 构建脚本: [build_manual.sh](/Users/chenyu/project/mod/update_all/demo/RestSiteUpgradeAll/build_manual.sh)
-- Manifest: [rest_site_upgrade_all.json](/Users/chenyu/project/mod/update_all/demo/RestSiteUpgradeAll/rest_site_upgrade_all.json)
-- 入口初始化: [Bootstrap.cs](/Users/chenyu/project/mod/update_all/demo/RestSiteUpgradeAll/src/Bootstrap.cs)
-- 日志封装: [Log.cs](/Users/chenyu/project/mod/update_all/demo/RestSiteUpgradeAll/src/Log.cs)
-- 核心补丁: [RestSitePatches.cs](/Users/chenyu/project/mod/update_all/demo/RestSiteUpgradeAll/src/Sts2/RestSitePatches.cs)
+- 工程文件: [RestSiteSmithPick.csproj](/Users/chenyu/project/mod/update_all/demo/RestSiteSmithPick/RestSiteSmithPick.csproj)
+- 构建脚本: [build_manual.sh](/Users/chenyu/project/mod/update_all/demo/RestSiteSmithPick/build_manual.sh)
+- Manifest: [rest_site_smith_pick.json](/Users/chenyu/project/mod/update_all/demo/RestSiteSmithPick/rest_site_smith_pick.json)
+- 入口初始化: [Bootstrap.cs](/Users/chenyu/project/mod/update_all/demo/RestSiteSmithPick/src/Bootstrap.cs)
+- 日志封装: [Log.cs](/Users/chenyu/project/mod/update_all/demo/RestSiteSmithPick/src/Log.cs)
+- 核心补丁: [RestSitePatches.cs](/Users/chenyu/project/mod/update_all/demo/RestSiteSmithPick/src/Sts2/RestSitePatches.cs)
 
 ## 注意事项！！
 - 首次加载mod会覆盖存档！请注意报错好自己的存档。
-- mod放置目录为<Slay the Spire 2>\mods\rest_site_upgrade_all\
-- github地址 https://github.com/cheny777/RestSiteUpgradeAll
+- mod放置目录为<Slay the Spire 2>\mods\rest_site_smith_pick\
+- github地址 https://github.com/cheny777/RestSiteSmithPick

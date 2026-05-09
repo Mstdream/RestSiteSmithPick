@@ -1,0 +1,12 @@
+{
+  "id": "rest_site_smith_pick",
+  "name": "Rest Site Smith Pick",
+  "author": "chenyu, Mst",
+  "description": "At rest sites, the Smith option lets you pick N cards to upgrade. N is configurable via upgrade_count.",
+  "version": "0.2.0",
+  "has_pck": false,
+  "has_dll": true,
+  "dependencies": [],
+  "affects_gameplay": false,
+  "upgrade_count": 2
+}

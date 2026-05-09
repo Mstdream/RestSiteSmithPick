@@ -1,9 +1,12 @@
+// Original work Copyright (c) 2025 chenyu. Licensed under Apache License 2.0.
+// Modified by Mst, 2026.
+
 using System.Reflection;
 using System.Threading;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Modding;
 
-namespace RestSiteUpgradeAll;
+namespace RestSiteSmithPick;
 
 [ModInitializer(nameof(Initialize))]
 internal static class Bootstrap
@@ -18,7 +21,8 @@ internal static class Bootstrap
         }
 
         Log.Info("Initializing.");
-        var harmony = new Harmony("rest_site_upgrade_all");
+        Config.Load();
+        var harmony = new Harmony("rest_site_smith_pick");
         harmony.PatchAll(Assembly.GetExecutingAssembly());
         Log.Info("Applied Harmony patches.");
     }
