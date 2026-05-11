@@ -48,10 +48,6 @@ internal static class RestSitePatches
     [HarmonyPatch(typeof(SmithRestSiteOption), nameof(SmithRestSiteOption.OnSelect))]
     private static bool ModifySmithCount(SmithRestSiteOption __instance, ref Task<bool> __result)
     {
-        var count = Config.UpgradeCount;
-        SmithCountProperty.SetValue(__instance, count);
-        Log.Info($"SmithCount set to {count}, delegating to original OnSelect.");
-
         var owner = GetOwner(__instance);
         var upgradableCount = owner.Deck.Cards.Count(card => card.IsUpgradable);
         if (upgradableCount == 0)
@@ -61,6 +57,10 @@ internal static class RestSitePatches
             __result = Task.FromResult(false);
             return false;
         }
+
+        var count = Config.NextUpgradeCount();
+        SmithCountProperty.SetValue(__instance, count);
+        Log.Info($"SmithCount set to {count}, delegating to original OnSelect.");
 
         return true;
     }
@@ -85,7 +85,7 @@ internal static class RestSitePatches
 
         if (isFocused || isExecuting)
         {
-            var count = Config.UpgradeCount;
+            var count = Config.PeekUpgradeCount();
             room.SetText($"选择{count}张牌升级");
         }
         else

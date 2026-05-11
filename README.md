@@ -4,6 +4,19 @@
 
 它在火堆的 `Smith` 选项中，让玩家自选 N 张牌升级（N 通过 `upgrade_count` 配置，默认 2），而不是只能选 1 张或一键升全部。
 
+## upgrade_count 配置
+
+在 `rest_site_smith_pick.json` 中修改 `upgrade_count`：
+
+- **固定模式**：填入一个数字，每次锻造都选同样数量的牌
+  ```json
+  "upgrade_count": 3
+  ```
+- **循环模式**：填入一个数组，按顺序循环使用。例如 `[2, 1]` 表示第 1 个火堆选 2 张、第 2 个火堆选 1 张、第 3 个火堆选 2 张……以此类推
+  ```json
+  "upgrade_count": [2, 1]
+  ```
+
 ## 项目信息
 
 - Mod ID: `rest_site_smith_pick`
