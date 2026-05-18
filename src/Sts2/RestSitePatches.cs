@@ -6,6 +6,8 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using HarmonyLib;
+using MegaCrit.Sts2.Core.CardSelection;
+using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Entities.RestSite;
 using MegaCrit.Sts2.Core.Models;
@@ -44,11 +46,21 @@ internal static class RestSitePatches
         BindingFlags.Instance | BindingFlags.NonPublic)
         ?? throw new InvalidOperationException("SmithRestSiteOption._selection field not found.");
 
+    private static readonly FieldInfo MinSelectBackingField = typeof(CardSelectorPrefs).GetField(
+        "<MinSelect>k__BackingField",
+        BindingFlags.Instance | BindingFlags.NonPublic)
+        ?? throw new InvalidOperationException("CardSelectorPrefs.MinSelect backing field not found.");
+
+    private static bool _isSmithing;
+
     [HarmonyPrefix]
     [HarmonyPatch(typeof(SmithRestSiteOption), nameof(SmithRestSiteOption.OnSelect))]
-    private static bool ModifySmithCount(SmithRestSiteOption __instance, ref Task<bool> __result)
+    private static bool ModifySmithCount(SmithRestSiteOption __instance, ref Task<bool> __result, out string __state)
     {
         var owner = GetOwner(__instance);
+        __state = GetProgressScope(owner);
+        Config.UseProgressScope(__state);
+
         var upgradableCount = owner.Deck.Cards.Count(card => card.IsUpgradable);
         if (upgradableCount == 0)
         {
@@ -58,18 +70,80 @@ internal static class RestSitePatches
             return false;
         }
 
-        var count = Config.NextUpgradeCount();
+        var count = Config.PeekUpgradeCount();
         SmithCountProperty.SetValue(__instance, count);
+        _isSmithing = true;
         Log.Info($"SmithCount set to {count}, delegating to original OnSelect.");
 
         return true;
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(SmithRestSiteOption), nameof(SmithRestSiteOption.OnSelect))]
+    private static void AfterSmithSelect(string __state, ref Task<bool> __result)
+    {
+        if (__result is null)
+            return;
+
+        var original = __result;
+        __result = AdvanceOnSuccessAsync(original, __state);
+    }
+
+    private static async Task<bool> AdvanceOnSuccessAsync(Task<bool> task, string progressScope)
+    {
+        try
+        {
+            var success = await task;
+            if (success)
+            {
+                Log.Info("Smith completed, advancing cycle.");
+                Config.UseProgressScope(progressScope);
+                Config.AdvanceCycle();
+            }
+            else
+            {
+                Log.Info("Smith cancelled, cycle not advanced.");
+            }
+            return success;
+        }
+        finally
+        {
+            _isSmithing = false;
+        }
+    }
+
+    [HarmonyFinalizer]
+    [HarmonyPatch(typeof(SmithRestSiteOption), nameof(SmithRestSiteOption.OnSelect))]
+    private static void ClearSmithingOnSelectException(Exception? __exception)
+    {
+        if (__exception is not null)
+            _isSmithing = false;
+    }
+
+    /// <summary>
+    /// Intercept FromDeckForUpgrade to relax MinSelect to 1,
+    /// so the player can pick &lt;=N cards instead of exactly N.
+    /// </summary>
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(CardSelectCmd), nameof(CardSelectCmd.FromDeckForUpgrade))]
+    private static void RelaxMinSelect(CardSelectorPrefs prefs)
+    {
+        if (!_isSmithing) return;
+        _isSmithing = false;
+
+        var currentMin = (int)(MinSelectBackingField.GetValue(prefs) ?? 1);
+        if (currentMin > 1)
+        {
+            MinSelectBackingField.SetValue(prefs, 1);
+            Log.Info($"Relaxed MinSelect from {currentMin} to 1.");
+        }
     }
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(NRestSiteButton), nameof(NRestSiteButton.RefreshTextState))]
     private static bool OverrideSmithDescription(NRestSiteButton __instance)
     {
-        if (__instance.Option is not SmithRestSiteOption)
+        if (__instance.Option is not SmithRestSiteOption smithOption)
         {
             return true;
         }
@@ -85,8 +159,10 @@ internal static class RestSitePatches
 
         if (isFocused || isExecuting)
         {
+            var owner = GetOwner(smithOption);
+            Config.UseProgressScope(GetProgressScope(owner));
             var count = Config.PeekUpgradeCount();
-            room.SetText($"选择{count}张牌升级");
+            room.SetText($"选择最多{count}张牌升级");
         }
         else
         {
@@ -100,5 +176,10 @@ internal static class RestSitePatches
     {
         return (Player?)OwnerProperty.GetValue(option)
             ?? throw new InvalidOperationException("Rest site option owner was null.");
+    }
+
+    private static string GetProgressScope(Player owner)
+    {
+        return $"player_{owner.NetId}";
     }
 }
